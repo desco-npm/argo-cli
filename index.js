@@ -47,8 +47,10 @@ var exec_sh_1 = __importDefault(require("exec-sh"));
 var colors_1 = __importDefault(require("colors"));
 var cli_spinners_1 = __importDefault(require("cli-spinners"));
 var log_update_async_hook_1 = __importDefault(require("log-update-async-hook"));
+var path_1 = __importDefault(require("path"));
 var ArgoCli = /** @class */ (function () {
     function ArgoCli() {
+        this.argoDir = __dirname;
         this.menu();
     }
     ArgoCli.prototype.menu = function () {
@@ -77,33 +79,107 @@ var ArgoCli = /** @class */ (function () {
     /* ========================================= ACTIONS ========================================== */
     ArgoCli.prototype.action_init = function () {
         return __awaiter(this, void 0, void 0, function () {
-            var name, modules, progress;
-            return __generator(this, function (_a) {
-                switch (_a.label) {
-                    case 0: return [4 /*yield*/, (0, prompts_1.default)({
-                            type: 'text',
-                            name: 'name',
-                            message: 'What is the name of the project? (Leave blank to start in current directory)',
-                        })];
-                    case 1:
-                        name = (_a.sent()).name;
-                        return [4 /*yield*/, this.selectModules()];
-                    case 2:
-                        modules = _a.sent();
-                        progress = [];
-                        if (modules.includes('orm')) {
+            var configure, createDir, createSrcDir, prepareORM, prepareServer, _a, name, modules, db, pathDir, pathSrcDir, progress;
+            var _this = this;
+            return __generator(this, function (_b) {
+                switch (_b.label) {
+                    case 0:
+                        configure = function () { return __awaiter(_this, void 0, void 0, function () {
+                            var name, modules, db;
+                            return __generator(this, function (_a) {
+                                switch (_a.label) {
+                                    case 0: return [4 /*yield*/, (0, prompts_1.default)({
+                                            type: 'text',
+                                            name: 'name',
+                                            message: 'What is the name of the project? (Leave blank to start in current directory)',
+                                        })];
+                                    case 1:
+                                        name = (_a.sent()).name;
+                                        return [4 /*yield*/, this.selectModules()];
+                                    case 2:
+                                        modules = _a.sent();
+                                        db = '';
+                                        if (!modules.includes('orm')) return [3 /*break*/, 4];
+                                        return [4 /*yield*/, this.selectOneDb('Which databases will be used with ORM?')];
+                                    case 3:
+                                        db = _a.sent();
+                                        _a.label = 4;
+                                    case 4: return [2 /*return*/, { name: name, modules: modules, db: db, }];
+                                }
+                            });
+                        }); };
+                        createDir = function (name) {
                             if (!fs_1.default.existsSync(name)) {
                                 fs_1.default.mkdirSync(name);
                             }
                             else {
-                                this.error("A directory named \"".concat(name, "\" already exists"));
+                                _this.error("A directory named \"".concat(name, "\" already exists"));
                             }
-                            progress.push({
-                                message: 'Starting TypeORM...',
-                                handler: function () {
-                                    return exec_sh_1.default.promise('npx typeorm init --database mysql', { cwd: name, detached: true, });
-                                },
-                            });
+                        };
+                        createSrcDir = function () {
+                            if (!fs_1.default.existsSync(pathSrcDir)) {
+                                fs_1.default.mkdirSync(pathSrcDir);
+                            }
+                        };
+                        prepareORM = function (pathDir, pathSrcDir, db) {
+                            return {
+                                message: 'Installing TypeORM...',
+                                handler: function () { return __awaiter(_this, void 0, void 0, function () {
+                                    return __generator(this, function (_a) {
+                                        switch (_a.label) {
+                                            case 0: return [4 /*yield*/, exec_sh_1.default.promise('npx typeorm init --database ' + db, {
+                                                    cwd: pathDir,
+                                                    detached: true,
+                                                })];
+                                            case 1:
+                                                _a.sent();
+                                                return [4 /*yield*/, fs_1.default.unlinkSync(path_1.default.join(pathSrcDir, 'index.ts'))];
+                                            case 2:
+                                                _a.sent();
+                                                return [4 /*yield*/, fs_1.default.copyFileSync(path_1.default.join(this.argoDir, 'models', 'orm.ts'), path_1.default.join(pathSrcDir, 'orm.ts'))];
+                                            case 3:
+                                                _a.sent();
+                                                return [2 /*return*/];
+                                        }
+                                    });
+                                }); },
+                            };
+                        };
+                        prepareServer = function (pathDir, pathSrcDir) {
+                            return {
+                                message: 'Installing Express...',
+                                handler: function () { return __awaiter(_this, void 0, void 0, function () {
+                                    return __generator(this, function (_a) {
+                                        switch (_a.label) {
+                                            case 0:
+                                                createSrcDir();
+                                                return [4 /*yield*/, exec_sh_1.default.promise('npm install --save express', {
+                                                        cwd: pathDir,
+                                                        detached: true,
+                                                    })];
+                                            case 1:
+                                                _a.sent();
+                                                return [4 /*yield*/, fs_1.default.copyFileSync(path_1.default.join(this.argoDir, 'models', 'server.ts'), path_1.default.join(pathSrcDir, 'server.ts'))];
+                                            case 2:
+                                                _a.sent();
+                                                return [2 /*return*/];
+                                        }
+                                    });
+                                }); },
+                            };
+                        };
+                        return [4 /*yield*/, configure()];
+                    case 1:
+                        _a = _b.sent(), name = _a.name, modules = _a.modules, db = _a.db;
+                        pathDir = name;
+                        pathSrcDir = path_1.default.resolve(path_1.default.join(name, 'src'));
+                        progress = [];
+                        createDir(pathDir);
+                        if (modules.includes('orm')) {
+                            progress.push(prepareORM(pathDir, pathSrcDir, db));
+                        }
+                        if (modules.includes('server')) {
+                            progress.push(prepareServer(pathDir, pathSrcDir));
                         }
                         this.progress(progress, 'Project created!');
                         return [2 /*return*/];
@@ -112,21 +188,32 @@ var ArgoCli = /** @class */ (function () {
         });
     };
     /* ===================================== SHARED METHODS ====================================== */
-    ArgoCli.prototype.selectModules = function () {
-        return this.selectModule();
+    ArgoCli.prototype.selectModules = function (message) {
+        return this.selectModule(message, { multi: true, });
     };
-    ArgoCli.prototype.selectModule = function (message) {
+    ArgoCli.prototype.selectOneModule = function (message) {
+        return this.selectModule(message, { multi: false, });
+    };
+    ArgoCli.prototype.selectModule = function (message, params) {
         return __awaiter(this, void 0, void 0, function () {
             var modules;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0: return [4 /*yield*/, (0, prompts_1.default)({
-                            type: 'multiselect',
+                            type: (params === null || params === void 0 ? void 0 : params.multi) ? 'multiselect' : 'select',
                             name: 'modules',
                             message: message || 'Which modules will be used?',
                             choices: [
-                                { title: 'Server', value: 'server', disabled: true, },
-                                { title: 'ORM', value: 'orm', },
+                                {
+                                    title: 'Express',
+                                    description: 'Allows you to create a server to receive and respond to requests',
+                                    value: 'server',
+                                },
+                                {
+                                    title: 'TypeORM',
+                                    description: ('Structure the code into entities that intelligently communicate with database tables'),
+                                    value: 'orm',
+                                },
                                 { title: 'Mail', value: 'mail', disabled: true, },
                                 { title: 'PDF', value: 'pdf', disabled: true, },
                             ],
@@ -134,6 +221,79 @@ var ArgoCli = /** @class */ (function () {
                     case 1:
                         modules = (_a.sent()).modules;
                         return [2 /*return*/, modules];
+                }
+            });
+        });
+    };
+    ArgoCli.prototype.selectDbs = function (message) {
+        return this.selectDb(message, { multi: true, });
+    };
+    ArgoCli.prototype.selectOneDb = function (message) {
+        return this.selectDb(message, { multi: false, });
+    };
+    ArgoCli.prototype.selectDb = function (message, params) {
+        return __awaiter(this, void 0, void 0, function () {
+            var dbs;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, (0, prompts_1.default)({
+                            type: (params === null || params === void 0 ? void 0 : params.multi) ? 'multiselect' : 'select',
+                            name: 'dbs',
+                            message: message || 'Which databases will be used?',
+                            choices: [
+                                {
+                                    title: 'MySql',
+                                    value: 'mysql',
+                                },
+                                {
+                                    title: 'NariaDB',
+                                    value: 'mariadb',
+                                },
+                                {
+                                    title: 'Postgres',
+                                    value: 'postgres',
+                                },
+                                {
+                                    title: 'Cockroachdb',
+                                    value: 'cockroachdb',
+                                },
+                                {
+                                    title: 'SqLite',
+                                    value: 'sqlite',
+                                },
+                                {
+                                    title: 'MsSql',
+                                    value: 'mssql',
+                                },
+                                {
+                                    title: 'Oracle',
+                                    value: 'oracle',
+                                },
+                                {
+                                    title: 'MongoDb',
+                                    value: 'mongodb',
+                                },
+                                {
+                                    title: 'Cordova',
+                                    value: 'cordova',
+                                },
+                                {
+                                    title: 'React Native',
+                                    value: 'react-native',
+                                },
+                                {
+                                    title: 'Expo',
+                                    value: 'expo',
+                                },
+                                {
+                                    title: 'NativeScript',
+                                    value: 'nativescript',
+                                },
+                            ],
+                        })];
+                    case 1:
+                        dbs = (_a.sent()).dbs;
+                        return [2 /*return*/, dbs];
                 }
             });
         });

@@ -38,6 +38,7 @@
     "colors": "^1.4.0",
     "exec-sh": "^0.4.0",
     "log-update-async-hook": "^2.0.2",
+    "path": "^0.12.7",
     "prompts": "^2.4.2"
   }
 }
