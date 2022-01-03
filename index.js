@@ -36,6 +36,15 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
+var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
+    if (pack || arguments.length === 2) for (var i = 0, l = from.length, ar; i < l; i++) {
+        if (ar || !(i in from)) {
+            if (!ar) ar = Array.prototype.slice.call(from, 0, i);
+            ar[i] = from[i];
+        }
+    }
+    return to.concat(ar || Array.prototype.slice.call(from));
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -79,7 +88,7 @@ var ArgoCli = /** @class */ (function () {
     /* ========================================= ACTIONS ========================================== */
     ArgoCli.prototype.action_init = function () {
         return __awaiter(this, void 0, void 0, function () {
-            var configure, createDir, createSrcDir, prepareORM, prepareServer, _a, name, modules, db, pathDir, pathSrcDir, progress;
+            var configure, createDir, createSrcDir, prepareORM, prepareServer, indexModules, finalPreparations, _a, name, modules, db, pathDir, pathSrcDir, progress;
             var _this = this;
             return __generator(this, function (_b) {
                 switch (_b.label) {
@@ -168,10 +177,76 @@ var ArgoCli = /** @class */ (function () {
                                 }); },
                             };
                         };
+                        indexModules = function (modules, pathSrcDir) {
+                            return {
+                                message: 'Indexing modules...',
+                                handler: function () { return __awaiter(_this, void 0, void 0, function () {
+                                    var imports, execs, code;
+                                    return __generator(this, function (_a) {
+                                        switch (_a.label) {
+                                            case 0:
+                                                imports = [];
+                                                execs = [];
+                                                modules.map(function (module) { return imports.push("import ".concat(module, " from './").concat(module, "'")); });
+                                                modules.map(function (module) { return execs.push("  await ".concat(module, "()")); });
+                                                code = __spreadArray(__spreadArray(__spreadArray(__spreadArray([], imports, true), [
+                                                    '',
+                                                    '(async () => {'
+                                                ], false), execs, true), [
+                                                    '})()',
+                                                ], false);
+                                                return [4 /*yield*/, fs_1.default.appendFileSync(path_1.default.join(pathSrcDir, 'index.ts'), code.join('\n'))];
+                                            case 1:
+                                                _a.sent();
+                                                return [2 /*return*/];
+                                        }
+                                    });
+                                }); },
+                            };
+                        };
+                        finalPreparations = function (pathDir) {
+                            return {
+                                message: 'Final preparations...',
+                                handler: function () { return __awaiter(_this, void 0, void 0, function () {
+                                    var packageJsonAddrs, packagesJson;
+                                    return __generator(this, function (_a) {
+                                        switch (_a.label) {
+                                            case 0:
+                                                packageJsonAddrs = path_1.default.join(pathDir, 'package.json');
+                                                return [4 /*yield*/, exec_sh_1.default.promise('npm install --save nodemon ts-node typescript ', {
+                                                        cwd: pathDir,
+                                                        detached: true,
+                                                    })];
+                                            case 1:
+                                                _a.sent();
+                                                packagesJson = require(packageJsonAddrs);
+                                                packagesJson.scripts = {
+                                                    'build': 'tsc',
+                                                    'build:watch': 'tsc --watch',
+                                                    'start': 'nodemon',
+                                                    'start:watch': 'nodemon --watch',
+                                                    'start:ts': 'ts-node src/index.ts',
+                                                    'start:ts:watch': 'ts-node src/index.ts --watch',
+                                                };
+                                                return [4 /*yield*/, fs_1.default.writeFileSync(packageJsonAddrs, JSON.stringify(packagesJson, null, 2))];
+                                            case 2:
+                                                _a.sent();
+                                                return [4 /*yield*/, fs_1.default.unlinkSync(path_1.default.join(pathDir, 'tsconfig.json'))];
+                                            case 3:
+                                                _a.sent();
+                                                return [4 /*yield*/, fs_1.default.copyFileSync(path_1.default.join(this.argoDir, 'tsconfig.json'), path_1.default.join(pathDir, 'tsconfig.json'))];
+                                            case 4:
+                                                _a.sent();
+                                                return [2 /*return*/];
+                                        }
+                                    });
+                                }); },
+                            };
+                        };
                         return [4 /*yield*/, configure()];
                     case 1:
                         _a = _b.sent(), name = _a.name, modules = _a.modules, db = _a.db;
-                        pathDir = name;
+                        pathDir = path_1.default.resolve(name);
                         pathSrcDir = path_1.default.resolve(path_1.default.join(name, 'src'));
                         progress = [];
                         createDir(pathDir);
@@ -181,6 +256,8 @@ var ArgoCli = /** @class */ (function () {
                         if (modules.includes('server')) {
                             progress.push(prepareServer(pathDir, pathSrcDir));
                         }
+                        progress.push(indexModules(modules, pathSrcDir));
+                        progress.push(finalPreparations(pathDir));
                         this.progress(progress, 'Project created!');
                         return [2 /*return*/];
                 }

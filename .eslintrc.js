@@ -30,5 +30,6 @@ module.exports = {
     'no-useless-return': 'off',
     curly: 'off',
     semi: [ 2, 'never', ],
+    '@typescript-eslint/no-var-requires': 'off',
   },
 }

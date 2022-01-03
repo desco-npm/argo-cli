@@ -8,7 +8,6 @@ import colors from 'colors'
 import cliSpinners from 'cli-spinners'
 import logUpdate from 'log-update-async-hook'
 import path from 'path'
-import { create, } from 'domain'
 
 class ArgoCli {
   private argoDir: string = __dirname
@@ -105,9 +104,66 @@ class ArgoCli {
       }
     }
 
+    const indexModules = (modules: string[], pathSrcDir: string): IProgressData => {
+      return {
+        message: 'Indexing modules...',
+        handler: async () => {
+          const imports: string[] = []
+          const execs: string[] = []
+
+          modules.map(module => imports.push(`import ${module} from './${module}'`))
+          modules.map(module => execs.push(`  await ${module}()`))
+
+          const code: string[] = [
+            ...imports,
+            '',
+            '(async () => {',
+            ...execs,
+            '})()',
+          ]
+          
+          await fs.appendFileSync(path.join(pathSrcDir, 'index.ts'), code.join('\n'))
+        },
+      }
+    }
+
+    const finalPreparations = (pathDir: string): IProgressData => {
+      return {
+        message: 'Final preparations...',
+        handler: async () => {
+          const packageJsonAddrs = path.join(pathDir, 'package.json')
+
+          await exec.promise('npm install --save nodemon ts-node typescript ', {
+            cwd: pathDir,
+            detached: true,
+          })
+
+          const packagesJson = require(packageJsonAddrs)
+
+          packagesJson.scripts = {
+            'build': 'tsc',
+            'build:watch': 'tsc --watch',
+            'start': 'nodemon',
+            'start:watch': 'nodemon --watch',
+            'start:ts': 'ts-node src/index.ts',
+            'start:ts:watch': 'ts-node src/index.ts --watch',
+          }
+
+          await fs.writeFileSync(packageJsonAddrs, JSON.stringify(packagesJson, null, 2))
+
+          await fs.unlinkSync(path.join(pathDir, 'tsconfig.json'))
+
+          await  fs.copyFileSync(
+            path.join(this.argoDir, 'tsconfig.json'),
+            path.join(pathDir, 'tsconfig.json')
+          )
+        },
+      }
+    }
+
     const { name, modules, db, } = await configure()
 
-    const pathDir = name
+    const pathDir = path.resolve(name)
     const pathSrcDir = path.resolve(path.join(name, 'src'))
 
     const progress: IProgressData[] = []
@@ -121,6 +177,9 @@ class ArgoCli {
     if (modules.includes('server')) {
       progress.push(prepareServer(pathDir, pathSrcDir))
     }
+
+    progress.push(indexModules(modules, pathSrcDir))
+    progress.push(finalPreparations(pathDir))
 
     this.progress(progress, 'Project created!')
   }
