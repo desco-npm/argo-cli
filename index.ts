@@ -52,7 +52,7 @@ class ArgoCli {
           initial: 3000,
         })
         :
-        null
+        { serverPort: null, }
 
       const { serverCors, } = modules.includes('server')
         ?
@@ -65,7 +65,7 @@ class ArgoCli {
           inactive: 'No',
         })
         :
-        null
+        { serverCors: null, }
 
       const { serverBody, } = modules.includes('server')
         ?
@@ -78,7 +78,7 @@ class ArgoCli {
           inactive: 'No',
         })
         :
-        null
+        { serverBody: null, }
 
       const { serverQueryString, } = modules.includes('server')
         ?
@@ -93,7 +93,7 @@ class ArgoCli {
           inactive: 'No',
         })
         :
-        null
+        { serverQueryString: null, }
 
       const { serverRequestLimit, } = modules.includes('server')
         ?
@@ -104,7 +104,7 @@ class ArgoCli {
           initial: '100kb',
         })
         :
-        null
+        { serverRequestLimit: null, }
 
       const { serverParameterLimit, } = modules.includes('server')
         ?
@@ -115,7 +115,7 @@ class ArgoCli {
           initial: 1000,
         })
         :
-        null
+        { serverParameterLimit: null, }
 
       const { serverStaticFolders, } = modules.includes('server')
         ?
@@ -127,7 +127,7 @@ class ArgoCli {
           separator: ',',
         })
         :
-        null
+        { serverStaticFolders: null, }
 
       const ormDb = modules.includes('orm')
         ?
@@ -144,7 +144,7 @@ class ArgoCli {
           initial: 'localhost',
         })
         :
-        null
+        { ormDbHost: null, }
 
       const { ormDbPort, } = modules.includes('orm')
         ?
@@ -154,7 +154,7 @@ class ArgoCli {
           message: 'Which port will be used by the ORM database?',
         })
         :
-        null
+        { ormDbPort: null, }
 
       const { ormDbName, } = modules.includes('orm')
         ?
@@ -164,7 +164,7 @@ class ArgoCli {
           message: 'What will be the name of the ORM database?',
         })
         :
-        null
+        { ormDbName: null, }
 
       const { ormDbUser, } = modules.includes('orm')
         ?
@@ -174,7 +174,7 @@ class ArgoCli {
           message: 'Which user will be used by the ORM database?',
         })
         :
-        null
+        { ormDbUser: null, }
 
       const { ormDbPassword, } = modules.includes('orm')
         ?
@@ -184,7 +184,7 @@ class ArgoCli {
           message: 'Which password will be used by the ORM database?',
         })
         :
-        null
+        { ormDbPassword: null, }
 
       const pathDir = path.resolve(name)
       const pathSrcDir = path.resolve(path.join(name, 'src'))
@@ -425,7 +425,11 @@ class ArgoCli {
 
           await fs.writeFileSync(packageJsonAddrs, JSON.stringify(packagesJson, null, 2))
 
-          await fs.unlinkSync(path.join(pathDir, 'tsconfig.json'))
+          const tsConfigJsonAddrs = path.join(pathDir, 'tsconfig.json')
+
+          if (await fs.pathExists(tsConfigJsonAddrs)) {
+            await fs.unlinkSync(tsConfigJsonAddrs)
+          }
 
           await  fs.copySync(
             path.join(this.argoDir, 'tsconfig.json'),

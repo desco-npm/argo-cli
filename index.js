@@ -118,7 +118,7 @@ var ArgoCli = /** @class */ (function () {
                                         _a = _p.sent();
                                         return [3 /*break*/, 5];
                                     case 4:
-                                        _a = null;
+                                        _a = { serverPort: null, };
                                         _p.label = 5;
                                     case 5:
                                         serverPort = (_a).serverPort;
@@ -135,7 +135,7 @@ var ArgoCli = /** @class */ (function () {
                                         _b = _p.sent();
                                         return [3 /*break*/, 8];
                                     case 7:
-                                        _b = null;
+                                        _b = { serverCors: null, };
                                         _p.label = 8;
                                     case 8:
                                         serverCors = (_b).serverCors;
@@ -152,7 +152,7 @@ var ArgoCli = /** @class */ (function () {
                                         _c = _p.sent();
                                         return [3 /*break*/, 11];
                                     case 10:
-                                        _c = null;
+                                        _c = { serverBody: null, };
                                         _p.label = 11;
                                     case 11:
                                         serverBody = (_c).serverBody;
@@ -169,7 +169,7 @@ var ArgoCli = /** @class */ (function () {
                                         _d = _p.sent();
                                         return [3 /*break*/, 14];
                                     case 13:
-                                        _d = null;
+                                        _d = { serverQueryString: null, };
                                         _p.label = 14;
                                     case 14:
                                         serverQueryString = (_d).serverQueryString;
@@ -184,7 +184,7 @@ var ArgoCli = /** @class */ (function () {
                                         _e = _p.sent();
                                         return [3 /*break*/, 17];
                                     case 16:
-                                        _e = null;
+                                        _e = { serverRequestLimit: null, };
                                         _p.label = 17;
                                     case 17:
                                         serverRequestLimit = (_e).serverRequestLimit;
@@ -199,7 +199,7 @@ var ArgoCli = /** @class */ (function () {
                                         _f = _p.sent();
                                         return [3 /*break*/, 20];
                                     case 19:
-                                        _f = null;
+                                        _f = { serverParameterLimit: null, };
                                         _p.label = 20;
                                     case 20:
                                         serverParameterLimit = (_f).serverParameterLimit;
@@ -215,7 +215,7 @@ var ArgoCli = /** @class */ (function () {
                                         _g = _p.sent();
                                         return [3 /*break*/, 23];
                                     case 22:
-                                        _g = null;
+                                        _g = { serverStaticFolders: null, };
                                         _p.label = 23;
                                     case 23:
                                         serverStaticFolders = (_g).serverStaticFolders;
@@ -240,7 +240,7 @@ var ArgoCli = /** @class */ (function () {
                                         _j = _p.sent();
                                         return [3 /*break*/, 29];
                                     case 28:
-                                        _j = null;
+                                        _j = { ormDbHost: null, };
                                         _p.label = 29;
                                     case 29:
                                         ormDbHost = (_j).ormDbHost;
@@ -254,7 +254,7 @@ var ArgoCli = /** @class */ (function () {
                                         _k = _p.sent();
                                         return [3 /*break*/, 32];
                                     case 31:
-                                        _k = null;
+                                        _k = { ormDbPort: null, };
                                         _p.label = 32;
                                     case 32:
                                         ormDbPort = (_k).ormDbPort;
@@ -268,7 +268,7 @@ var ArgoCli = /** @class */ (function () {
                                         _l = _p.sent();
                                         return [3 /*break*/, 35];
                                     case 34:
-                                        _l = null;
+                                        _l = { ormDbName: null, };
                                         _p.label = 35;
                                     case 35:
                                         ormDbName = (_l).ormDbName;
@@ -282,7 +282,7 @@ var ArgoCli = /** @class */ (function () {
                                         _m = _p.sent();
                                         return [3 /*break*/, 38];
                                     case 37:
-                                        _m = null;
+                                        _m = { ormDbUser: null, };
                                         _p.label = 38;
                                     case 38:
                                         ormDbUser = (_m).ormDbUser;
@@ -296,7 +296,7 @@ var ArgoCli = /** @class */ (function () {
                                         _o = _p.sent();
                                         return [3 /*break*/, 41];
                                     case 40:
-                                        _o = null;
+                                        _o = { ormDbPassword: null, };
                                         _p.label = 41;
                                     case 41:
                                         ormDbPassword = (_o).ormDbPassword;
@@ -504,7 +504,7 @@ var ArgoCli = /** @class */ (function () {
                             return {
                                 message: 'Final preparations...',
                                 handler: function () { return __awaiter(_this, void 0, void 0, function () {
-                                    var packageJsonAddrs, packagesJson;
+                                    var packageJsonAddrs, packagesJson, tsConfigJsonAddrs;
                                     return __generator(this, function (_a) {
                                         switch (_a.label) {
                                             case 0:
@@ -527,11 +527,16 @@ var ArgoCli = /** @class */ (function () {
                                                 return [4 /*yield*/, fs_extra_1.default.writeFileSync(packageJsonAddrs, JSON.stringify(packagesJson, null, 2))];
                                             case 2:
                                                 _a.sent();
-                                                return [4 /*yield*/, fs_extra_1.default.unlinkSync(path_1.default.join(pathDir, 'tsconfig.json'))];
+                                                tsConfigJsonAddrs = path_1.default.join(pathDir, 'tsconfig.json');
+                                                return [4 /*yield*/, fs_extra_1.default.pathExists(tsConfigJsonAddrs)];
                                             case 3:
-                                                _a.sent();
-                                                return [4 /*yield*/, fs_extra_1.default.copySync(path_1.default.join(this.argoDir, 'tsconfig.json'), path_1.default.join(pathDir, 'tsconfig.json'))];
+                                                if (!_a.sent()) return [3 /*break*/, 5];
+                                                return [4 /*yield*/, fs_extra_1.default.unlinkSync(tsConfigJsonAddrs)];
                                             case 4:
+                                                _a.sent();
+                                                _a.label = 5;
+                                            case 5: return [4 /*yield*/, fs_extra_1.default.copySync(path_1.default.join(this.argoDir, 'tsconfig.json'), path_1.default.join(pathDir, 'tsconfig.json'))];
+                                            case 6:
                                                 _a.sent();
                                                 return [2 /*return*/];
                                         }
