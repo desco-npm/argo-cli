@@ -8,6 +8,7 @@ import colors from 'colors'
 import cliSpinners from 'cli-spinners'
 import logUpdate from 'log-update-async-hook'
 import path from 'path'
+import cliHeader from '@desco/cli-header'
 
 class ArgoCli {
   private argoDir: string = __dirname
@@ -18,6 +19,10 @@ class ArgoCli {
 
   async menu () {
     clear()
+
+    cliHeader({
+      title: 'Argo v0.0.0',
+    })
   
     const { action, } = await prompts({
       type: 'select',
@@ -42,6 +47,8 @@ class ArgoCli {
       })
   
       const modules: string[] = await this.selectModules()
+
+      console.log(`\n${colors.bgBlack.white.bold(' Express ')}\n`)
 
       const { serverPort, } = modules.includes('server')
         ?
@@ -128,6 +135,8 @@ class ArgoCli {
         })
         :
         { serverStaticFolders: null, }
+
+      console.log(`\n${colors.bgBlack.white.bold(' ORM ')}\n`)
 
       const ormDb = modules.includes('orm')
         ?

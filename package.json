@@ -33,6 +33,7 @@
     "argo": "index.js"
   },
   "dependencies": {
+    "@desco/cli-header": "^1.0.5",
     "clear": "^0.1.0",
     "cli-spinners": "^2.6.1",
     "colors": "^1.4.0",

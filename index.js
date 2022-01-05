@@ -57,6 +57,7 @@ var colors_1 = __importDefault(require("colors"));
 var cli_spinners_1 = __importDefault(require("cli-spinners"));
 var log_update_async_hook_1 = __importDefault(require("log-update-async-hook"));
 var path_1 = __importDefault(require("path"));
+var cli_header_1 = __importDefault(require("@desco/cli-header"));
 var ArgoCli = /** @class */ (function () {
     function ArgoCli() {
         this.argoDir = __dirname;
@@ -69,6 +70,9 @@ var ArgoCli = /** @class */ (function () {
                 switch (_a.label) {
                     case 0:
                         (0, clear_1.default)();
+                        (0, cli_header_1.default)({
+                            title: 'Argo v0.0.0',
+                        });
                         return [4 /*yield*/, (0, prompts_1.default)({
                                 type: 'select',
                                 name: 'action',
@@ -107,6 +111,7 @@ var ArgoCli = /** @class */ (function () {
                                         return [4 /*yield*/, this.selectModules()];
                                     case 2:
                                         modules = _p.sent();
+                                        console.log("\n".concat(colors_1.default.bgBlack.white.bold(' Express '), "\n"));
                                         if (!modules.includes('server')) return [3 /*break*/, 4];
                                         return [4 /*yield*/, (0, prompts_1.default)({
                                                 type: 'number',
@@ -219,6 +224,7 @@ var ArgoCli = /** @class */ (function () {
                                         _p.label = 23;
                                     case 23:
                                         serverStaticFolders = (_g).serverStaticFolders;
+                                        console.log("\n".concat(colors_1.default.bgBlack.white.bold(' ORM '), "\n"));
                                         if (!modules.includes('orm')) return [3 /*break*/, 25];
                                         return [4 /*yield*/, this.selectOneDb('Which databases will be used with ORM?')];
                                     case 24:
