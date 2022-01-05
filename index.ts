@@ -160,7 +160,7 @@ class ArgoCli {
           await fs.unlinkSync(path.join(pathSrcDir, 'index.ts'))
 
           await  fs.copySync(
-            path.join(this.argoDir, 'models', 'orm'),
+            path.join(this.argoDir, 'drafts', 'orm'),
             path.join(pathSrcDir, 'orm')
           )
 
@@ -241,7 +241,7 @@ class ArgoCli {
           })
 
           await  fs.copySync(
-            path.join(this.argoDir, 'models', 'server'),
+            path.join(this.argoDir, 'drafts', 'server'),
             path.join(pathSrcDir, 'server')
           )
 

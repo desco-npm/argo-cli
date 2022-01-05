@@ -250,7 +250,7 @@ var ArgoCli = /** @class */ (function () {
                                                 return [4 /*yield*/, fs_extra_1.default.unlinkSync(path_1.default.join(pathSrcDir, 'index.ts'))];
                                             case 2:
                                                 _a.sent();
-                                                return [4 /*yield*/, fs_extra_1.default.copySync(path_1.default.join(this.argoDir, 'models', 'orm'), path_1.default.join(pathSrcDir, 'orm'))];
+                                                return [4 /*yield*/, fs_extra_1.default.copySync(path_1.default.join(this.argoDir, 'drafts', 'orm'), path_1.default.join(pathSrcDir, 'orm'))];
                                             case 3:
                                                 _a.sent();
                                                 ormconfigJsonAddrs = path_1.default.join(pathDir, 'ormconfig.json');
@@ -320,7 +320,7 @@ var ArgoCli = /** @class */ (function () {
                                                     })];
                                             case 1:
                                                 _a.sent();
-                                                return [4 /*yield*/, fs_extra_1.default.copySync(path_1.default.join(this.argoDir, 'models', 'server'), path_1.default.join(pathSrcDir, 'server'))];
+                                                return [4 /*yield*/, fs_extra_1.default.copySync(path_1.default.join(this.argoDir, 'drafts', 'server'), path_1.default.join(pathSrcDir, 'server'))];
                                             case 2:
                                                 _a.sent();
                                                 return [4 /*yield*/, fs_extra_1.default.appendFileSync(path_1.default.join(pathDir, '.env'), ("EXPRESS_PORT=".concat(config.serverPort, "\n")))];
