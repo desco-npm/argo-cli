@@ -1,5 +1,21 @@
 #!/usr/bin/env node
 
+// this.Core.use(cors()) // Treat the CORS
+
+// this.Core.use(bodyParser.urlencoded(this.Config.get('urlencoded'))) // Recognize URL Encoded
+//     { extended: false, }
+
+// this.Core.use(bodyParser.json(this.Config.get('json'))) // Recognize JSON
+
+// urlencoded: {
+//   limit: '5mb',
+// },
+// json: {
+//   limit: '5mb',
+// },
+
+// this.Core.use(express.static(d))
+
 import clear from 'clear'
 import prompts from 'prompts'
 import fs from 'fs-extra'
@@ -50,6 +66,19 @@ class ArgoCli {
           name: 'serverPort',
           message: 'Which port will the server use?',
           initial: 3000,
+        })
+        :
+        null
+
+      const { serverCors, } = modules.includes('server')
+        ?
+        await prompts({
+          type: 'toggle',
+          name: 'serverCors',
+          message: 'Enable CORS on the server?',
+          initial: true,
+          active: 'Yes',
+          inactive: 'No',
         })
         :
         null
@@ -124,6 +153,7 @@ class ArgoCli {
         ormDbUser,
         ormDbPassword,
         serverPort,
+        serverCors,
         pathDir,
         pathSrcDir,
       }
@@ -234,20 +264,37 @@ class ArgoCli {
         message: 'Installing Express...',
         handler: async () => {
           createSrcDir()
-
-          await exec.promise('npm install --save express', {
-            cwd: pathDir,
-            detached: true,
-          })
+          const dependencies = [ 'express', ]
 
           await  fs.copySync(
             path.join(this.argoDir, 'drafts', 'server'),
             path.join(pathSrcDir, 'server')
           )
 
+          const imports: string[] = []
+          const uses: string[] = []
+
+          if (config.serverCors) {
+            dependencies.push('cors')
+            imports.push('import cors from \'cors\'')
+            uses.push('app.use(cors())')
+          }
+
+          const serverFileAddrs = path.join(config.pathSrcDir, 'server', 'index.ts')
+          const serverFileContent = fs.readFileSync(serverFileAddrs, 'utf8')
+            .replace('{{IMPORTS}}', imports.join('\n'))
+            .replace('{{USES}}', uses.join('\n'))
+
+          await fs.writeFileSync(serverFileAddrs, serverFileContent)
+
           await fs.appendFileSync(path.join(pathDir, '.env'), (
             `EXPRESS_PORT=${config.serverPort}\n`
           ))
+
+          await exec.promise('npm install --save ' + dependencies.join(' '), {
+            cwd: pathDir,
+            detached: true,
+          })
         },
       }
     }
@@ -517,6 +564,7 @@ interface IConfigureData {
   ormDbUser: string | null,
   ormDbPassword: string | null,
   serverPort: number | null,
+  serverCors: boolean | null,
   pathDir: string,
   pathSrcDir: string
 }

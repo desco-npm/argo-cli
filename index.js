@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 "use strict";
+// this.Core.use(cors()) // Treat the CORS
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -49,6 +50,16 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+// this.Core.use(bodyParser.urlencoded(this.Config.get('urlencoded'))) // Recognize URL Encoded
+//     { extended: false, }
+// this.Core.use(bodyParser.json(this.Config.get('json'))) // Recognize JSON
+// urlencoded: {
+//   limit: '5mb',
+// },
+// json: {
+//   limit: '5mb',
+// },
+// this.Core.use(express.static(d))
 var clear_1 = __importDefault(require("clear"));
 var prompts_1 = __importDefault(require("prompts"));
 var fs_extra_1 = __importDefault(require("fs-extra"));
@@ -94,19 +105,19 @@ var ArgoCli = /** @class */ (function () {
                 switch (_a.label) {
                     case 0:
                         configure = function () { return __awaiter(_this, void 0, void 0, function () {
-                            var name, modules, serverPort, _a, ormDb, _b, ormDbHost, _c, ormDbPort, _d, ormDbName, _e, ormDbUser, _f, ormDbPassword, _g, pathDir, pathSrcDir;
-                            return __generator(this, function (_h) {
-                                switch (_h.label) {
+                            var name, modules, serverPort, _a, serverCors, _b, ormDb, _c, ormDbHost, _d, ormDbPort, _e, ormDbName, _f, ormDbUser, _g, ormDbPassword, _h, pathDir, pathSrcDir;
+                            return __generator(this, function (_j) {
+                                switch (_j.label) {
                                     case 0: return [4 /*yield*/, (0, prompts_1.default)({
                                             type: 'text',
                                             name: 'name',
                                             message: 'What is the name of the project?',
                                         })];
                                     case 1:
-                                        name = (_h.sent()).name;
+                                        name = (_j.sent()).name;
                                         return [4 /*yield*/, this.selectModules()];
                                     case 2:
-                                        modules = _h.sent();
+                                        modules = _j.sent();
                                         if (!modules.includes('server')) return [3 /*break*/, 4];
                                         return [4 /*yield*/, (0, prompts_1.default)({
                                                 type: 'number',
@@ -115,94 +126,111 @@ var ArgoCli = /** @class */ (function () {
                                                 initial: 3000,
                                             })];
                                     case 3:
-                                        _a = _h.sent();
+                                        _a = _j.sent();
                                         return [3 /*break*/, 5];
                                     case 4:
                                         _a = null;
-                                        _h.label = 5;
+                                        _j.label = 5;
                                     case 5:
                                         serverPort = (_a).serverPort;
-                                        if (!modules.includes('orm')) return [3 /*break*/, 7];
-                                        return [4 /*yield*/, this.selectOneDb('Which databases will be used with ORM?')];
+                                        if (!modules.includes('server')) return [3 /*break*/, 7];
+                                        return [4 /*yield*/, (0, prompts_1.default)({
+                                                type: 'toggle',
+                                                name: 'serverCors',
+                                                message: 'Enable CORS on the server?',
+                                                initial: true,
+                                                active: 'Yes',
+                                                inactive: 'No',
+                                            })];
                                     case 6:
-                                        _b = _h.sent();
+                                        _b = _j.sent();
                                         return [3 /*break*/, 8];
                                     case 7:
                                         _b = null;
-                                        _h.label = 8;
+                                        _j.label = 8;
                                     case 8:
-                                        ormDb = _b;
+                                        serverCors = (_b).serverCors;
                                         if (!modules.includes('orm')) return [3 /*break*/, 10];
+                                        return [4 /*yield*/, this.selectOneDb('Which databases will be used with ORM?')];
+                                    case 9:
+                                        _c = _j.sent();
+                                        return [3 /*break*/, 11];
+                                    case 10:
+                                        _c = null;
+                                        _j.label = 11;
+                                    case 11:
+                                        ormDb = _c;
+                                        if (!modules.includes('orm')) return [3 /*break*/, 13];
                                         return [4 /*yield*/, (0, prompts_1.default)({
                                                 type: 'text',
                                                 name: 'ormDbHost',
                                                 message: 'Which host will be used by the ORM database?',
                                                 initial: 'localhost',
                                             })];
-                                    case 9:
-                                        _c = _h.sent();
-                                        return [3 /*break*/, 11];
-                                    case 10:
-                                        _c = null;
-                                        _h.label = 11;
-                                    case 11:
-                                        ormDbHost = (_c).ormDbHost;
-                                        if (!modules.includes('orm')) return [3 /*break*/, 13];
+                                    case 12:
+                                        _d = _j.sent();
+                                        return [3 /*break*/, 14];
+                                    case 13:
+                                        _d = null;
+                                        _j.label = 14;
+                                    case 14:
+                                        ormDbHost = (_d).ormDbHost;
+                                        if (!modules.includes('orm')) return [3 /*break*/, 16];
                                         return [4 /*yield*/, (0, prompts_1.default)({
                                                 type: 'text',
                                                 name: 'ormDbPort',
                                                 message: 'Which port will be used by the ORM database?',
                                             })];
-                                    case 12:
-                                        _d = _h.sent();
-                                        return [3 /*break*/, 14];
-                                    case 13:
-                                        _d = null;
-                                        _h.label = 14;
-                                    case 14:
-                                        ormDbPort = (_d).ormDbPort;
-                                        if (!modules.includes('orm')) return [3 /*break*/, 16];
+                                    case 15:
+                                        _e = _j.sent();
+                                        return [3 /*break*/, 17];
+                                    case 16:
+                                        _e = null;
+                                        _j.label = 17;
+                                    case 17:
+                                        ormDbPort = (_e).ormDbPort;
+                                        if (!modules.includes('orm')) return [3 /*break*/, 19];
                                         return [4 /*yield*/, (0, prompts_1.default)({
                                                 type: 'text',
                                                 name: 'ormDbName',
                                                 message: 'What will be the name of the ORM database?',
                                             })];
-                                    case 15:
-                                        _e = _h.sent();
-                                        return [3 /*break*/, 17];
-                                    case 16:
-                                        _e = null;
-                                        _h.label = 17;
-                                    case 17:
-                                        ormDbName = (_e).ormDbName;
-                                        if (!modules.includes('orm')) return [3 /*break*/, 19];
+                                    case 18:
+                                        _f = _j.sent();
+                                        return [3 /*break*/, 20];
+                                    case 19:
+                                        _f = null;
+                                        _j.label = 20;
+                                    case 20:
+                                        ormDbName = (_f).ormDbName;
+                                        if (!modules.includes('orm')) return [3 /*break*/, 22];
                                         return [4 /*yield*/, (0, prompts_1.default)({
                                                 type: 'text',
                                                 name: 'ormDbUser',
                                                 message: 'Which user will be used by the ORM database?',
                                             })];
-                                    case 18:
-                                        _f = _h.sent();
-                                        return [3 /*break*/, 20];
-                                    case 19:
-                                        _f = null;
-                                        _h.label = 20;
-                                    case 20:
-                                        ormDbUser = (_f).ormDbUser;
-                                        if (!modules.includes('orm')) return [3 /*break*/, 22];
+                                    case 21:
+                                        _g = _j.sent();
+                                        return [3 /*break*/, 23];
+                                    case 22:
+                                        _g = null;
+                                        _j.label = 23;
+                                    case 23:
+                                        ormDbUser = (_g).ormDbUser;
+                                        if (!modules.includes('orm')) return [3 /*break*/, 25];
                                         return [4 /*yield*/, (0, prompts_1.default)({
                                                 type: 'password',
                                                 name: 'ormDbPassword',
                                                 message: 'Which password will be used by the ORM database?',
                                             })];
-                                    case 21:
-                                        _g = _h.sent();
-                                        return [3 /*break*/, 23];
-                                    case 22:
-                                        _g = null;
-                                        _h.label = 23;
-                                    case 23:
-                                        ormDbPassword = (_g).ormDbPassword;
+                                    case 24:
+                                        _h = _j.sent();
+                                        return [3 /*break*/, 26];
+                                    case 25:
+                                        _h = null;
+                                        _j.label = 26;
+                                    case 26:
+                                        ormDbPassword = (_h).ormDbPassword;
                                         pathDir = path_1.default.resolve(name);
                                         pathSrcDir = path_1.default.resolve(path_1.default.join(name, 'src'));
                                         return [2 /*return*/, {
@@ -215,6 +243,7 @@ var ArgoCli = /** @class */ (function () {
                                                 ormDbUser: ormDbUser,
                                                 ormDbPassword: ormDbPassword,
                                                 serverPort: serverPort,
+                                                serverCors: serverCors,
                                                 pathDir: pathDir,
                                                 pathSrcDir: pathSrcDir,
                                             }];
@@ -310,21 +339,37 @@ var ArgoCli = /** @class */ (function () {
                             return {
                                 message: 'Installing Express...',
                                 handler: function () { return __awaiter(_this, void 0, void 0, function () {
+                                    var dependencies, imports, uses, serverFileAddrs, serverFileContent;
                                     return __generator(this, function (_a) {
                                         switch (_a.label) {
                                             case 0:
                                                 createSrcDir();
-                                                return [4 /*yield*/, exec_sh_1.default.promise('npm install --save express', {
-                                                        cwd: pathDir,
-                                                        detached: true,
-                                                    })];
+                                                dependencies = ['express',];
+                                                return [4 /*yield*/, fs_extra_1.default.copySync(path_1.default.join(this.argoDir, 'drafts', 'server'), path_1.default.join(pathSrcDir, 'server'))];
                                             case 1:
                                                 _a.sent();
-                                                return [4 /*yield*/, fs_extra_1.default.copySync(path_1.default.join(this.argoDir, 'drafts', 'server'), path_1.default.join(pathSrcDir, 'server'))];
+                                                imports = [];
+                                                uses = [];
+                                                if (config.serverCors) {
+                                                    dependencies.push('cors');
+                                                    imports.push('import cors from \'cors\'');
+                                                    uses.push('app.use(cors())');
+                                                }
+                                                serverFileAddrs = path_1.default.join(config.pathSrcDir, 'server', 'index.ts');
+                                                serverFileContent = fs_extra_1.default.readFileSync(serverFileAddrs, 'utf8')
+                                                    .replace('{{IMPORTS}}', imports.join('\n'))
+                                                    .replace('{{USES}}', uses.join('\n'));
+                                                return [4 /*yield*/, fs_extra_1.default.writeFileSync(serverFileAddrs, serverFileContent)];
                                             case 2:
                                                 _a.sent();
                                                 return [4 /*yield*/, fs_extra_1.default.appendFileSync(path_1.default.join(pathDir, '.env'), ("EXPRESS_PORT=".concat(config.serverPort, "\n")))];
                                             case 3:
+                                                _a.sent();
+                                                return [4 /*yield*/, exec_sh_1.default.promise('npm install --save ' + dependencies.join(' '), {
+                                                        cwd: pathDir,
+                                                        detached: true,
+                                                    })];
+                                            case 4:
                                                 _a.sent();
                                                 return [2 /*return*/];
                                         }

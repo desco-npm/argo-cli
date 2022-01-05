@@ -1,4 +1,5 @@
 import express from 'express'
+{{IMPORTS}}
 
 import routers from './routers'
 
@@ -7,6 +8,8 @@ require('dotenv').config()
 export default () => {
   const app = express()
   const port = process.env.EXPRESS_PORT
+
+  {{USES}}
   
   routers(app)
   
