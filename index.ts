@@ -2,7 +2,7 @@
 
 import clear from 'clear'
 import prompts from 'prompts'
-import fs from 'fs'
+import fs from 'fs-extra'
 import exec from 'exec-sh'
 import colors from 'colors'
 import cliSpinners from 'cli-spinners'
@@ -34,21 +34,99 @@ class ArgoCli {
   /* ========================================= ACTIONS ========================================== */
 
   async action_init (): Promise<void> {
-    const configure = async (): Promise<{ name: string, db: string, modules: string[], }> => {
+    const configure = async (): Promise<IConfigureData> => {
       const { name, } = await prompts({
         type: 'text',
         name: 'name',
-        message: 'What is the name of the project? (Leave blank to start in current directory)',
+        message: 'What is the name of the project?',
       })
   
       const modules: string[] = await this.selectModules()
-      let db = ''
-  
-      if (modules.includes('orm')) {
-        db = await this.selectOneDb('Which databases will be used with ORM?')
-      }
 
-      return { name, modules, db, }
+      const { serverPort, } = modules.includes('server')
+        ?
+        await prompts({
+          type: 'number',
+          name: 'serverPort',
+          message: 'Which port will the server use?',
+          initial: 3000,
+        })
+        :
+        null
+
+      const ormDb = modules.includes('orm')
+        ?
+        await this.selectOneDb('Which databases will be used with ORM?')
+        :
+        null
+
+      const { ormDbHost, } = modules.includes('orm')
+        ?
+        await prompts({
+          type: 'text',
+          name: 'ormDbHost',
+          message: 'Which host will be used by the ORM database?',
+          initial: 'localhost',
+        })
+        :
+        null
+
+      const { ormDbPort, } = modules.includes('orm')
+        ?
+        await prompts({
+          type: 'text',
+          name: 'ormDbPort',
+          message: 'Which port will be used by the ORM database?',
+        })
+        :
+        null
+
+      const { ormDbName, } = modules.includes('orm')
+        ?
+        await prompts({
+          type: 'text',
+          name: 'ormDbName',
+          message: 'What will be the name of the ORM database?',
+        })
+        :
+        null
+
+      const { ormDbUser, } = modules.includes('orm')
+        ?
+        await prompts({
+          type: 'text',
+          name: 'ormDbUser',
+          message: 'Which user will be used by the ORM database?',
+        })
+        :
+        null
+
+      const { ormDbPassword, } = modules.includes('orm')
+        ?
+        await prompts({
+          type: 'password',
+          name: 'ormDbPassword',
+          message: 'Which password will be used by the ORM database?',
+        })
+        :
+        null
+
+      const pathDir = path.resolve(name)
+      const pathSrcDir = path.resolve(path.join(name, 'src'))
+
+      return {
+        name,
+        modules,
+        ormDb,
+        ormDbHost,
+        ormDbPort,
+        ormDbName,
+        ormDbUser,
+        ormDbPassword,
+        serverPort,
+        pathDir,
+        pathSrcDir,
+      }
     }
 
     const createDir = (name: string): void => {
@@ -66,26 +144,92 @@ class ArgoCli {
       }
     }
 
-    const prepareORM = (pathDir: string, pathSrcDir: string, db: string): IProgressData => {
+    const prepareORM = (
+      pathDir: string,
+      pathSrcDir: string,
+      config: IConfigureData
+    ): IProgressData => {
       return {
         message: 'Installing TypeORM...',
         handler: async () => {
-          await exec.promise('npx typeorm init --database ' + db, {
+          await exec.promise('npx typeorm init --database ' + config.ormDb, {
             cwd: pathDir,
             detached: true,
           })
 
           await fs.unlinkSync(path.join(pathSrcDir, 'index.ts'))
 
-          await  fs.copyFileSync(
-            path.join(this.argoDir, 'models', 'orm.ts'),
-            path.join(pathSrcDir, 'orm.ts')
+          await  fs.copySync(
+            path.join(this.argoDir, 'models', 'orm'),
+            path.join(pathSrcDir, 'orm')
+          )
+
+          const ormconfigJsonAddrs = path.join(pathDir, 'ormconfig.json')
+          const ormconfigTsAddrs = path.join(pathDir, 'ormconfig.ts')
+          const ormconfig = require(ormconfigJsonAddrs)
+
+          ormconfig.entities[0] = ormconfig.entities[0].replace('.ts', '.js')
+
+          if (config.ormDbHost) {
+            ormconfig.host = config.ormDbHost
+          }
+
+          if (config.ormDbPort) {
+            ormconfig.port = config.ormDbPort
+          }
+
+          if (config.ormDbName) {
+            ormconfig.database = config.ormDbName
+          }
+
+          if (config.ormDbUser) {
+            ormconfig.username = config.ormDbUser
+          }
+
+          if (config.ormDbPassword) {
+            ormconfig.password = config.ormDbPassword
+          }
+          
+          await fs.appendFileSync(path.join(pathDir, '.env'), (
+            `TYPEORM_DB_TYPE=${ormconfig.type}\n` +
+            `TYPEORM_DB_HOST=${ormconfig.host}\n` +
+            `TYPEORM_DB_PORT=${ormconfig.port}\n` +
+            `TYPEORM_DB_NAME=${ormconfig.database}\n` +
+            `TYPEORM_DB_USER=${ormconfig.username}\n` +
+            `TYPEORM_DB_PASSWORD=${ormconfig.password}\n\n`
+          ))
+
+          ormconfig.type = '[[TYPE]]'
+          ormconfig.host = '[[HOST]]'
+          ormconfig.port = '[[PORT]]'
+          ormconfig.database = '[[DATABASE]]'
+          ormconfig.username = '[[USERNAME]]'
+          ormconfig.password = '[[PASSWORD]]'
+
+          await fs.unlinkSync(ormconfigJsonAddrs)
+
+          const ormconfigString = JSON.stringify(ormconfig, null, 2)
+            .replace('"[[TYPE]]"', 'process.env.TYPEORM_DB_TYPE')
+            .replace('"[[HOST]]"', 'process.env.TYPEORM_DB_HOST')
+            .replace('"[[PORT]]"', 'process.env.TYPEORM_DB_PORT')
+            .replace('"[[DATABASE]]"', 'process.env.TYPEORM_DB_NAME')
+            .replace('"[[USERNAME]]"', 'process.env.TYPEORM_DB_USER')
+            .replace('"[[PASSWORD]]"', 'process.env.TYPEORM_DB_PASSWORD')
+
+          await fs.writeFileSync(
+            ormconfigTsAddrs,
+            'require(\'dotenv\').config()\n\n' +
+            'export default ' + ormconfigString
           )
         },
       }
     }
 
-    const prepareServer = (pathDir: string, pathSrcDir: string): IProgressData => {
+    const prepareServer = (
+      pathDir: string,
+      pathSrcDir: string,
+      config: IConfigureData
+    ): IProgressData => {
       return {
         message: 'Installing Express...',
         handler: async () => {
@@ -96,23 +240,27 @@ class ArgoCli {
             detached: true,
           })
 
-          await  fs.copyFileSync(
-            path.join(this.argoDir, 'models', 'server.ts'),
-            path.join(pathSrcDir, 'server.ts')
+          await  fs.copySync(
+            path.join(this.argoDir, 'models', 'server'),
+            path.join(pathSrcDir, 'server')
           )
+
+          await fs.appendFileSync(path.join(pathDir, '.env'), (
+            `EXPRESS_PORT=${config.serverPort}\n`
+          ))
         },
       }
     }
 
-    const indexModules = (modules: string[], pathSrcDir: string): IProgressData => {
+    const indexModules = (pathSrcDir: string, config: IConfigureData): IProgressData => {
       return {
         message: 'Indexing modules...',
         handler: async () => {
           const imports: string[] = []
           const execs: string[] = []
 
-          modules.map(module => imports.push(`import ${module} from './${module}'`))
-          modules.map(module => execs.push(`  await ${module}()`))
+          config.modules.map(module => imports.push(`import ${module} from './${module}'`))
+          config.modules.map(module => execs.push(`  await ${module}()`))
 
           const code: string[] = [
             ...imports,
@@ -133,7 +281,7 @@ class ArgoCli {
         handler: async () => {
           const packageJsonAddrs = path.join(pathDir, 'package.json')
 
-          await exec.promise('npm install --save nodemon ts-node typescript ', {
+          await exec.promise('npm install --save nodemon ts-node typescript dotenv', {
             cwd: pathDir,
             detached: true,
           })
@@ -143,8 +291,8 @@ class ArgoCli {
           packagesJson.scripts = {
             'build': 'tsc',
             'build:watch': 'tsc --watch',
-            'start': 'nodemon',
-            'start:watch': 'nodemon --watch',
+            'start': 'nodemon ./src',
+            'start:watch': 'nodemon ./src --watch',
             'start:ts': 'ts-node src/index.ts',
             'start:ts:watch': 'ts-node src/index.ts --watch',
           }
@@ -153,7 +301,7 @@ class ArgoCli {
 
           await fs.unlinkSync(path.join(pathDir, 'tsconfig.json'))
 
-          await  fs.copyFileSync(
+          await  fs.copySync(
             path.join(this.argoDir, 'tsconfig.json'),
             path.join(pathDir, 'tsconfig.json')
           )
@@ -161,24 +309,24 @@ class ArgoCli {
       }
     }
 
-    const { name, modules, db, } = await configure()
+    const config = await configure()
 
-    const pathDir = path.resolve(name)
-    const pathSrcDir = path.resolve(path.join(name, 'src'))
+    const pathDir = path.resolve(config.name)
+    const pathSrcDir = path.resolve(path.join(config.name, 'src'))
 
     const progress: IProgressData[] = []
 
     createDir(pathDir)
 
-    if (modules.includes('orm')) {
-      progress.push(prepareORM(pathDir, pathSrcDir, db))
+    if (config.modules.includes('orm')) {
+      progress.push(prepareORM(pathDir, pathSrcDir, config))
     }
 
-    if (modules.includes('server')) {
-      progress.push(prepareServer(pathDir, pathSrcDir))
+    if (config.modules.includes('server')) {
+      progress.push(prepareServer(pathDir, pathSrcDir, config))
     }
 
-    progress.push(indexModules(modules, pathSrcDir))
+    progress.push(indexModules(pathSrcDir, config))
     progress.push(finalPreparations(pathDir))
 
     this.progress(progress, 'Project created!')
@@ -357,4 +505,18 @@ interface IProgressData {
 
 interface ISelectParams {
   multi: boolean,
+}
+
+interface IConfigureData {
+  modules: string[],
+  name: string,
+  ormDb: string | null,
+  ormDbHost: string | null,
+  ormDbPort: number | null,
+  ormDbName: string | null,
+  ormDbUser: string | null,
+  ormDbPassword: string | null,
+  serverPort: number | null,
+  pathDir: string,
+  pathSrcDir: string
 }
