@@ -10,6 +10,8 @@ export default () => {
   const port = process.env.EXPRESS_PORT
 
   {{USES}}
+
+  {{STATICS}}
   
   routers(app)
   

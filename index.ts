@@ -1,21 +1,5 @@
 #!/usr/bin/env node
 
-// this.Core.use(cors()) // Treat the CORS
-
-// this.Core.use(bodyParser.urlencoded(this.Config.get('urlencoded'))) // Recognize URL Encoded
-//     { extended: false, }
-
-// this.Core.use(bodyParser.json(this.Config.get('json'))) // Recognize JSON
-
-// urlencoded: {
-//   limit: '5mb',
-// },
-// json: {
-//   limit: '5mb',
-// },
-
-// this.Core.use(express.static(d))
-
 import clear from 'clear'
 import prompts from 'prompts'
 import fs from 'fs-extra'
@@ -79,6 +63,68 @@ class ArgoCli {
           initial: true,
           active: 'Yes',
           inactive: 'No',
+        })
+        :
+        null
+
+      const { serverBody, } = modules.includes('server')
+        ?
+        await prompts({
+          type: 'toggle',
+          name: 'serverBody',
+          message: 'Make JSON available from the data sent by the request body to the server?',
+          initial: true,
+          active: 'Yes',
+          inactive: 'No',
+        })
+        :
+        null
+
+      const { serverQueryString, } = modules.includes('server')
+        ?
+        await prompts({
+          type: 'toggle',
+          name: 'serverQueryString',
+          message: (
+            'Make JSON available from the data sent by the request URL to the server (querystring)?'
+          ),
+          initial: true,
+          active: 'Yes',
+          inactive: 'No',
+        })
+        :
+        null
+
+      const { serverRequestLimit, } = modules.includes('server')
+        ?
+        await prompts({
+          type: 'text',
+          name: 'serverRequestLimit',
+          message: 'Maximum size of the body of requests to the server?',
+          initial: '100kb',
+        })
+        :
+        null
+
+      const { serverParameterLimit, } = modules.includes('server')
+        ?
+        await prompts({
+          type: 'number',
+          name: 'serverParameterLimit',
+          message: 'Maximum number of parameters allowed in URL encoded data?',
+          initial: 1000,
+        })
+        :
+        null
+
+      const { serverStaticFolders, } = modules.includes('server')
+        ?
+        await prompts({
+          type: 'list',
+          name: 'serverStaticFolders',
+          message: 'What will the server\'s static file directories be? (separate by comma)',
+          initial: 'public',
+          separator: ',',
         })
         :
         null
@@ -154,6 +200,11 @@ class ArgoCli {
         ormDbPassword,
         serverPort,
         serverCors,
+        serverBody,
+        serverQueryString,
+        serverRequestLimit,
+        serverParameterLimit,
+        serverStaticFolders,
         pathDir,
         pathSrcDir,
       }
@@ -273,6 +324,7 @@ class ArgoCli {
 
           const imports: string[] = []
           const uses: string[] = []
+          const statics: string[] = []
 
           if (config.serverCors) {
             dependencies.push('cors')
@@ -280,10 +332,37 @@ class ArgoCli {
             uses.push('app.use(cors())')
           }
 
+          if (config.serverBody) {
+            uses.push('app.use(express.json())')
+          }
+
+          const urlencoded: { extended?: boolean, limit?: string, parameterLimit?: number } = {}
+
+          if (config.serverQueryString) {
+            urlencoded.extended = true
+          }
+          
+          if (config.serverRequestLimit) {
+            urlencoded.limit = config.serverRequestLimit
+          }
+          
+          if (config.serverParameterLimit) {
+            urlencoded.parameterLimit = config.serverParameterLimit
+          }
+
+          if (Object.keys(urlencoded).length > 0) {
+            uses.push(`app.use(express.urlencoded(${JSON.stringify(urlencoded)}))`)
+          }
+
+          config.serverStaticFolders?.map(folder => {
+            statics.push(`app.use(express.static('${folder}'))`)
+          })
+
           const serverFileAddrs = path.join(config.pathSrcDir, 'server', 'index.ts')
           const serverFileContent = fs.readFileSync(serverFileAddrs, 'utf8')
             .replace('{{IMPORTS}}', imports.join('\n'))
-            .replace('{{USES}}', uses.join('\n'))
+            .replace('{{USES}}', uses.join('\n  '))
+            .replace('{{STATICS}}', statics.join('\n  '))
 
           await fs.writeFileSync(serverFileAddrs, serverFileContent)
 
@@ -565,6 +644,11 @@ interface IConfigureData {
   ormDbPassword: string | null,
   serverPort: number | null,
   serverCors: boolean | null,
+  serverBody: boolean | null,
+  serverQueryString: boolean | null,
+  serverRequestLimit: string | null,
+  serverParameterLimit: number | null,
+  serverStaticFolders: string[] | null,
   pathDir: string,
   pathSrcDir: string
 }
