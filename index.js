@@ -516,7 +516,9 @@ var ArgoCli = /** @class */ (function () {
                                                 execs = [];
                                                 config.modules.map(function (module) { return imports.push("import ".concat(module, " from './").concat(module, "'")); });
                                                 config.modules.map(function (module) { return execs.push("  await ".concat(module, "()")); });
-                                                code = __spreadArray(__spreadArray(__spreadArray(__spreadArray([], imports, true), [
+                                                code = __spreadArray(__spreadArray(__spreadArray(__spreadArray([
+                                                    'import \'module-alias/register\'\n'
+                                                ], imports, true), [
                                                     '',
                                                     '(async () => {'
                                                 ], false), execs, true), [
@@ -535,11 +537,23 @@ var ArgoCli = /** @class */ (function () {
                             return {
                                 message: 'Final preparations...',
                                 handler: function () { return __awaiter(_this, void 0, void 0, function () {
-                                    var packageJsonAddrs, dependencies, packagesJson, alias, tsConfigJsonAddrs, tsConfigContent;
+                                    var packageJsonAddrs, alias, dependencies, packagesJson, aliasTs, tsConfigJsonAddrs, tsConfigContent;
                                     return __generator(this, function (_a) {
                                         switch (_a.label) {
                                             case 0:
                                                 packageJsonAddrs = path_1.default.join(pathDir, 'package.json');
+                                                alias = [];
+                                                alias.push(['~', '.',]);
+                                                alias.push(['@', 'src',]);
+                                                if (config.modules.includes('server')) {
+                                                    alias.push(['@server', 'src/server',]);
+                                                    alias.push(['@router', 'src/server/routers',]);
+                                                }
+                                                if (config.modules.includes('orm')) {
+                                                    alias.push(['@orm', 'src/orm',]);
+                                                    alias.push(['@entity', 'src/orm/entity',]);
+                                                    alias.push(['@migration', 'src/orm/migration',]);
+                                                }
                                                 if (!!fs_extra_1.default.existsSync(packageJsonAddrs)) return [3 /*break*/, 2];
                                                 return [4 /*yield*/, exec_sh_1.default.promise('npm init -y', {
                                                         cwd: pathDir,
@@ -550,21 +564,18 @@ var ArgoCli = /** @class */ (function () {
                                                 _a.label = 2;
                                             case 2:
                                                 dependencies = {
-                                                    production: ['nodemon', 'ts-node', 'typescript', 'dotenv',],
-                                                    dev: ['@typescript-eslint/eslint-plugin', '@typescript-eslint/parser eslint',],
+                                                    production: [
+                                                        'nodemon',
+                                                        'ts-node',
+                                                        'typescript',
+                                                        'dotenv',
+                                                    ],
+                                                    dev: [
+                                                        '@typescript-eslint/eslint-plugin',
+                                                        '@typescript-eslint/parser eslint',
+                                                        'module-alias',
+                                                    ],
                                                 };
-                                                return [4 /*yield*/, exec_sh_1.default.promise('npm install --save ' + dependencies.production.join(' '), {
-                                                        cwd: pathDir,
-                                                        detached: true,
-                                                    })];
-                                            case 3:
-                                                _a.sent();
-                                                return [4 /*yield*/, exec_sh_1.default.promise('npm install --save-dev ' + dependencies.dev.join(' '), {
-                                                        cwd: pathDir,
-                                                        detached: true,
-                                                    })];
-                                            case 4:
-                                                _a.sent();
                                                 packagesJson = require(packageJsonAddrs);
                                                 packagesJson.scripts = {
                                                     'build': 'tsc',
@@ -574,29 +585,38 @@ var ArgoCli = /** @class */ (function () {
                                                     'start:ts': 'ts-node src/index.ts',
                                                     'start:ts:watch': 'ts-node src/index.ts --watch',
                                                 };
-                                                return [4 /*yield*/, fs_extra_1.default.writeFileSync(packageJsonAddrs, JSON.stringify(packagesJson, null, 2))];
-                                            case 5:
-                                                _a.sent();
-                                                alias = [];
-                                                if (config.modules.includes('server')) {
-                                                    alias.push('        "@server/*": [ "src/server/*" ],\n');
-                                                    alias.push('        "@router/*": [ "src/server/routers/*" ],\n');
-                                                }
-                                                if (config.modules.includes('orm')) {
-                                                    alias.push('        "@orm/*": [ "src/orm/*" ],\n');
-                                                    alias.push('        "@entity/*": [ "src/orm/entity/*" ],\n');
-                                                    alias.push('        "@migration/*": [ "src/orm/migration/*" ],\n');
-                                                }
+                                                packagesJson._moduleAliases = {};
+                                                alias.map(function (_a) {
+                                                    var a = _a[0], p = _a[1];
+                                                    return packagesJson._moduleAliases[a] = p;
+                                                });
+                                                aliasTs = alias.map(function (_a) {
+                                                    var a = _a[0], p = _a[1];
+                                                    return "        \"".concat(a, "/*\": [ \"").concat(p, "/*\" ],\n");
+                                                });
                                                 tsConfigJsonAddrs = path_1.default.join(pathDir, 'tsconfig.json');
                                                 return [4 /*yield*/, fs_extra_1.default.readFileSync(path_1.default.join(this.argoDir, 'tsconfig.json'), { encoding: 'utf8', })
                                                         .replace('    // "baseUrl": "./",                             /* Base directory to resolve non-absolute module names. */', '    "baseUrl": "./",                             /* Base directory to resolve non-absolute module names. */')
                                                         .replace('    // "paths": {},                                 /* A series of entries which re-map imports to lookup locations relative to the \'baseUrl\'. */', '    "paths": {\n' +
-                                                        '        "~/*": [ "./*" ],\n' +
-                                                        '        "@/*": [ "src/*" ],\n' +
-                                                        alias.join('') +
+                                                        aliasTs.join('') +
                                                         '    },                                 /* A series of entries which re-map imports to lookup locations relative to the \'baseUrl\'. */\n')];
+                                            case 3:
+                                                tsConfigContent = (_a.sent());
+                                                return [4 /*yield*/, exec_sh_1.default.promise('npm install --save ' + dependencies.production.join(' '), {
+                                                        cwd: pathDir,
+                                                        detached: true,
+                                                    })];
+                                            case 4:
+                                                _a.sent();
+                                                return [4 /*yield*/, exec_sh_1.default.promise('npm install --save-dev ' + dependencies.dev.join(' '), {
+                                                        cwd: pathDir,
+                                                        detached: true,
+                                                    })];
+                                            case 5:
+                                                _a.sent();
+                                                return [4 /*yield*/, fs_extra_1.default.writeFileSync(packageJsonAddrs, JSON.stringify(packagesJson, null, 2))];
                                             case 6:
-                                                tsConfigContent = _a.sent();
+                                                _a.sent();
                                                 return [4 /*yield*/, fs_extra_1.default.writeFileSync(tsConfigJsonAddrs, tsConfigContent)];
                                             case 7:
                                                 _a.sent();

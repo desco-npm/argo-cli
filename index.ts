@@ -434,6 +434,7 @@ class ArgoCli {
           config.modules.map(module => execs.push(`  await ${module}()`))
 
           const code: string[] = [
+            'import \'module-alias/register\'\n',
             ...imports,
             '',
             '(async () => {',
@@ -452,6 +453,22 @@ class ArgoCli {
         handler: async () => {
           const packageJsonAddrs = path.join(pathDir, 'package.json')
 
+          const alias: string[][] = []
+
+          alias.push([ '~', '.', ])
+          alias.push([ '@', 'src', ])
+
+          if (config.modules.includes('server')) {
+            alias.push([ '@server', 'src/server', ])
+            alias.push([ '@router', 'src/server/routers', ])
+          }
+
+          if (config.modules.includes('orm')) {
+            alias.push([ '@orm', 'src/orm', ])
+            alias.push([ '@entity', 'src/orm/entity', ])
+            alias.push([ '@migration', 'src/orm/migration', ])
+          }
+
           if (!fs.existsSync(packageJsonAddrs)){
             await exec.promise('npm init -y', {
               cwd: pathDir,
@@ -460,19 +477,18 @@ class ArgoCli {
           }
 
           const dependencies = {
-            production: [ 'nodemon', 'ts-node', 'typescript', 'dotenv', ],
-            dev: [ '@typescript-eslint/eslint-plugin', '@typescript-eslint/parser eslint', ],
+            production: [
+              'nodemon',
+              'ts-node',
+              'typescript',
+              'dotenv',
+            ],
+            dev: [
+              '@typescript-eslint/eslint-plugin',
+              '@typescript-eslint/parser eslint',
+              'module-alias',
+            ],
           }
-
-          await exec.promise('npm install --save ' + dependencies.production.join(' '), {
-            cwd: pathDir,
-            detached: true,
-          })
-
-          await exec.promise('npm install --save-dev ' + dependencies.dev.join(' '), {
-            cwd: pathDir,
-            detached: true,
-          })
 
           const packagesJson = require(packageJsonAddrs)
 
@@ -485,35 +501,37 @@ class ArgoCli {
             'start:ts:watch': 'ts-node src/index.ts --watch',
           }
 
-          await fs.writeFileSync(packageJsonAddrs, JSON.stringify(packagesJson, null, 2))
+          packagesJson._moduleAliases = {}
 
-          const alias: string[] = []
+          alias.map(([ a, p, ]) => packagesJson._moduleAliases[a] = p)
 
-          if (config.modules.includes('server')) {
-            alias.push('        "@server/*": [ "src/server/*" ],\n')
-            alias.push('        "@router/*": [ "src/server/routers/*" ],\n')
-          }
-
-          if (config.modules.includes('orm')) {
-            alias.push('        "@orm/*": [ "src/orm/*" ],\n')
-            alias.push('        "@entity/*": [ "src/orm/entity/*" ],\n')
-            alias.push('        "@migration/*": [ "src/orm/migration/*" ],\n')
-          }
-
+          const aliasTs = alias.map(([ a, p, ]) => `        "${a}/*": [ "${p}/*" ],\n`)
           const tsConfigJsonAddrs = path.join(pathDir, 'tsconfig.json')
-          const tsConfigContent = await fs.readFileSync(path.join(this.argoDir, 'tsconfig.json'), { encoding:'utf8', })
-            .replace(
-              '    // "baseUrl": "./",                             /* Base directory to resolve non-absolute module names. */',
-              '    "baseUrl": "./",                             /* Base directory to resolve non-absolute module names. */'
-            )
-            .replace(
-              '    // "paths": {},                                 /* A series of entries which re-map imports to lookup locations relative to the \'baseUrl\'. */',
-              '    "paths": {\n' +
-            '        "~/*": [ "./*" ],\n' +
-            '        "@/*": [ "src/*" ],\n' +
-            alias.join('') +
+          const tsConfigContent = (
+            await fs.readFileSync(path.join(this.argoDir, 'tsconfig.json'), { encoding:'utf8', })
+              .replace(
+                '    // "baseUrl": "./",                             /* Base directory to resolve non-absolute module names. */',
+                '    "baseUrl": "./",                             /* Base directory to resolve non-absolute module names. */'
+              )
+              .replace(
+                '    // "paths": {},                                 /* A series of entries which re-map imports to lookup locations relative to the \'baseUrl\'. */',
+                '    "paths": {\n' +
+              aliasTs.join('') +
             '    },                                 /* A series of entries which re-map imports to lookup locations relative to the \'baseUrl\'. */\n'
-            )
+              )
+          )
+
+          await exec.promise('npm install --save ' + dependencies.production.join(' '), {
+            cwd: pathDir,
+            detached: true,
+          })
+
+          await exec.promise('npm install --save-dev ' + dependencies.dev.join(' '), {
+            cwd: pathDir,
+            detached: true,
+          })
+
+          await fs.writeFileSync(packageJsonAddrs, JSON.stringify(packagesJson, null, 2))
 
           await fs.writeFileSync(tsConfigJsonAddrs, tsConfigContent)
 
