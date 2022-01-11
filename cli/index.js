@@ -478,7 +478,7 @@ var ArgoCli = /** @class */ (function () {
                                                     uses.push("app.use(express.urlencoded(".concat(JSON.stringify(urlencoded), "))"));
                                                 }
                                                 (_a = config.serverStaticFolders) === null || _a === void 0 ? void 0 : _a.map(function (folder) {
-                                                    statics.push("app.use(express.static('".concat(folder, "'))"));
+                                                    statics.push("app.use(express.static('".concat(path_1.default.join('src', 'server', folder), "'))"));
                                                     createDir(path_1.default.join(config.pathSrcDir, 'server', folder));
                                                 });
                                                 serverFileAddrs = path_1.default.join(config.pathSrcDir, 'server', 'index.ts');

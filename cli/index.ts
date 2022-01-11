@@ -397,7 +397,7 @@ class ArgoCli {
           }
 
           config.serverStaticFolders?.map(folder => {
-            statics.push(`app.use(express.static('${folder}'))`)
+            statics.push(`app.use(express.static('${path.join('src', 'server', folder)}'))`)
 
             createDir(path.join(config.pathSrcDir, 'server', folder))
           })
